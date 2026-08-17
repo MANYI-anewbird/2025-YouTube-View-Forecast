@@ -4,7 +4,7 @@ Predict how a video will perform **before you hit publish** — from the thumbna
 
 BA865 Team 7 (May 2025). Multi-input neural net: a **CNN on the thumbnail** plus an **MLP on tabular features** (title symbols, timing, category, region, channel stats). Trained on **11,755 videos / 11,734 thumbnails** scraped from the YouTube Data API across US, Canada, India, UK, and Australia (Jan–Apr 2025). After dropping failed image downloads and missing values: **9,900 rows**.
 
-Deck: [`docs/presentation.pptx`](docs/presentation.pptx)
+Deck: [`docs/presentation.pdf`](docs/presentation.pdf) · [`docs/presentation.pptx`](docs/presentation.pptx)
 
 ---
 
@@ -39,7 +39,8 @@ The jump that actually mattered was **target transformation**, then a slightly s
 ## Repo layout
 
 ```
-docs/presentation.pptx      # Team 7 slide deck
+docs/presentation.pdf       # Team 7 slide deck (PDF)
+docs/presentation.pptx      # same deck, editable
 docs/processing-map.pdf     # collection → train set
 notebooks/scrape_youtube_api.ipynb
 notebooks/download_thumbnails.ipynb
