@@ -4,6 +4,8 @@
 
 This is a BA865 (Team 7, May 2025) demand-forecast study. It is not a growth hack list. It is a pre-publish **go / no-go** model: estimate performance from what you can still change, before the video is live.
 
+**How we built that:** a multi-input network — **CNN on the thumbnail** plus **MLP on metadata** — trained in TensorFlow/Keras, then read with **SHAP** so the levers are visible, not just the score.
+
 Slides: [`docs/presentation.pdf`](docs/presentation.pdf)
 
 ---
@@ -60,6 +62,26 @@ Limits that change how you should use it: scrape volume was **skewed by region**
 | `notebooks/modeling/` | Multi-input experiments |
 
 Thumbnails and the full CSV are not checked in. Point the notebooks at a local data folder.
+
+---
+
+## How we built it (technical)
+
+Stack: **YouTube Data API** scrape → pandas clean → **TensorFlow/Keras** multi-input model → **SHAP** on the tabular branch.
+
+**Inputs.** 11 columns of metadata (title, video/channel ids, published time, category, region, subscribers, views, likes, thumbnail URL) plus the downloaded thumbnail, named by `video_id`. Regions: US, Canada, India, UK, Australia. Failed image downloads and missing fields drop the set from 11,755 to 9,900.
+
+**Features we actually used.** Hour and day-of-week; `is_weekend` and `time_of_day`; `like_rate` and `subscriber_rate`. From the image, via public vision APIs: `has_face`, `face_count`, `has_text`, detected text. Title-side counts of symbols / special characters were tried; they did not beat the best tabular group on their own.
+
+**Architecture (Model II — the one we kept).** Image branch: `Conv2D(32) → MaxPool → Conv2D(64) → GlobalMaxPooling → Dense(32)`. Tabular branch: `Dense(64) → Dense(32)`. Fusion: concatenate → `Dense(32)`. A deeper stack (third conv 128, batch-norm, dropout) **overfit** this 9.9k-row set; flattening the image with no convs underfit. We compared a linear baseline, MLP-only, CNN-only, the multi-input, and a pre-trained image tower — the fused Model II won on validation.
+
+**Target.** Raw view counts produced huge negative R². **`y' = log(y)`** is what made validation usable (0.656 → 0.794 on log, 0.763 on raw views after the transform). That is a modeling choice with a product meaning: we rank *orders of magnitude*, not exact view counts.
+
+**Search.** Hyperband, random search, and Bayesian search on Model II. Bayesian reached 0.811 log / 0.769 raw — a small lift over 0.809 / 0.775, not the story.
+
+**Interpretation.** Tabular SHAP: likes, Australia, Sports. Pixel SHAP on the CNN was inconsistent, so we do not publish pixel attributions.
+
+**Ops constraints.** 10,000 API units/day; scraper loops produced regional skew (~5,000 Canada vs ~5,000 for the other four regions combined). `YOUTUBE_API_KEY` stays in the environment.
 
 ---
 
