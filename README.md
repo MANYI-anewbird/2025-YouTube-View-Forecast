@@ -6,7 +6,7 @@ This is a BA865 (Team 7, May 2025) demand-forecast study. It is not a growth hac
 
 **How we built that:** a multi-input network — **CNN on the thumbnail** plus **MLP on metadata** — trained in TensorFlow/Keras, then read with **SHAP** so the levers are visible, not just the score.
 
-Slides: [`docs/presentation.pdf`](docs/presentation.pdf)
+Notebook: [`notebooks/final.ipynb`](notebooks/final.ipynb). Slides: [`docs/presentation.pdf`](docs/presentation.pdf)
 
 ---
 
