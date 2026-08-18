@@ -1,55 +1,65 @@
-# YouTube View Forecast
+# 2025 YouTube View Forecast
 
-Predict how a video will perform **before you hit publish** — from the thumbnail and the metadata, not from hindsight.
+**The question:** If a creator has already chosen a thumbnail, title style, category, region, and publish window — will the video get views, or is it about to waste a slot?
 
-BA865 Team 7 (May 2025). Multi-input neural net: a **CNN on the thumbnail** plus an **MLP on tabular features** (title symbols, timing, category, region, channel stats). Trained on **11,755 videos / 11,734 thumbnails** scraped from the YouTube Data API across US, Canada, India, UK, and Australia (Jan–Apr 2025). After dropping failed image downloads and missing values: **9,900 rows**.
+This is a BA865 (Team 7, May 2025) demand-forecast study. It is not a growth hack list. It is a pre-publish **go / no-go** model: estimate performance from what you can still change, before the video is live.
 
-Deck: [`docs/presentation.pdf`](docs/presentation.pdf) · [`docs/presentation.pptx`](docs/presentation.pptx)
-
----
-
-## Why it exists
-
-Creators spend hours on title, thumbnail, and timing, then find out too late whether the video will land. The two goals:
-
-1. **Estimate views before publishing** from thumbnail + metadata.
-2. **Show which knobs matter** (SHAP) so the next thumbnail or category choice is informed.
+Slides: [`docs/presentation.pdf`](docs/presentation.pdf)
 
 ---
 
-## What improved the model
+## Decision this supports
 
-Validation R² on log views, unless noted:
+Creators lock title, thumbnail, and timing, then discover the outcome too late. Re-cutting those after publish usually costs the first-day window.
 
-| Step | Val R² |
+Two decisions the work is built for:
+
+1. **Ship or restyle** — is this package (thumbnail + metadata) in a range that has historically cleared, or is it a likely miss?
+2. **What to change first** — of the levers still open, which ones actually moved predicted views in the data?
+
+---
+
+## What we found
+
+Worked on **11,755** videos across the US, Canada, India, UK, and Australia (Jan–Apr 2025 YouTube Data API). After dropped thumbnails and missing fields: **9,900** training rows.
+
+**The model can rank packages before publish.** On log views, validation R² moved from **0.656** (after thumbnail text/face features) to **0.809** once we forecast log views instead of raw counts, then used a smaller CNN that fit this sample. Bayesian tuning added almost nothing (0.811). The useful jump was the **target**, not a deeper network.
+
+**What the data says to do (and not do):**
+
+- **Likes** are the strongest tabular signal — they track popularity, they are not a pre-publish lever. Do not treat them as a thumbnail tip.
+- **Sports** as a category, and **Australia** as a market, associate with higher predicted views in this sample (audience size / engagement mix — not “always film sports”).
+- **Thumbnails:** a close, readable face helps personality-led or reaction content. If there is no face, the alternative that shows up is **bold text or one hard focal object** — not a busier collage.
+- Image-level SHAP on pixels was **unstable**. Thumbnail advice is directional, not “move this pixel.”
+
+---
+
+## How we got there (short)
+
+| Step | Why it mattered | Val R² (log views) |
+|---|---|---|
+| Tabular features only | Timing, category, region, title symbols | 0.595 |
+| + thumbnail CNN | Package, not metadata alone | 0.638 |
+| + face / text on the image | What the viewer actually sees | 0.656 |
+| Predict log views | Raw counts blew up; this is the decision-useful scale | 0.794 |
+| Smaller CNN (Model II) | Less overfit on 9.9k rows | **0.809** |
+| Bayesian search | Costly; little extra | 0.811 |
+
+Limits that change how you should use it: scrape volume was **skewed by region** (Canada over-weighted); API cap is 10k units/day; **likes leak post-publish information**, so a true pre-publish tool would need a likes-free variant.
+
+---
+
+## What’s in the repo
+
+| Path | |
 |---|---|
-| Best tabular feature group | 0.595 |
-| Multi-input baseline (CNN + MLP) | 0.638 |
-| Thumbnail OCR / face features | 0.656 |
-| **Log-view target transform** | **0.794** (raw views 0.763) |
-| Model II (shallower convs, better for small n) | **0.809** (raw 0.775) |
-| Bayesian hyperparameter search | 0.811 log / 0.769 raw |
+| [`docs/presentation.pdf`](docs/presentation.pdf) | Decision deck |
+| [`docs/processing-map.pdf`](docs/processing-map.pdf) | Collection → train set |
+| `notebooks/scrape_youtube_api.ipynb` | API pull (`YOUTUBE_API_KEY` in the environment) |
+| `notebooks/download_thumbnails.ipynb` | Image download |
+| `notebooks/modeling/` | Multi-input experiments |
 
-The jump that actually mattered was **target transformation**, then a slightly smaller CNN (Model II) that fit the 9.9k-row set better than a deeper stack. Bayesian search was a small extra, not the whole story.
-
-**SHAP (tabular):** likes dominate; Australia as a region; Sports category is a plus. **Thumbnail:** close-up faces help personality-driven content; otherwise bold readable text or a strong focal object.
-
----
-
-## Repo layout
-
-```
-docs/presentation.pdf       # Team 7 slide deck (PDF)
-docs/presentation.pptx      # same deck, editable
-docs/processing-map.pdf     # collection → train set
-notebooks/scrape_youtube_api.ipynb
-notebooks/download_thumbnails.ipynb
-notebooks/modeling/         # multi-input Keras experiments
-```
-
-Thumbnails and the full CSV are **not** in this repo (too large). Point the notebooks at a local data folder.
-
-Set `YOUTUBE_API_KEY` in the environment before running the scraper. Do not hard-code keys.
+Thumbnails and the full CSV are not checked in. Point the notebooks at a local data folder.
 
 ---
 
@@ -60,13 +70,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
-
----
-
-## Known limits (from the deck)
-
-- Scraper yield was uneven across regions; API quota is 10,000 units/day.
-- Image-level SHAP was unreliable, so thumbnail advice is directional, not pixel-attribution.
 
 ---
 
