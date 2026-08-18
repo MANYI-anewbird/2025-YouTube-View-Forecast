@@ -56,10 +56,9 @@ Limits that change how you should use it: scrape volume was **skewed by region**
 | Path | |
 |---|---|
 | [`docs/presentation.pdf`](docs/presentation.pdf) | Decision deck |
-| [`docs/processing-map.pdf`](docs/processing-map.pdf) | Collection → train set |
 | `notebooks/scrape_youtube_api.ipynb` | API pull (`YOUTUBE_API_KEY` in the environment) |
 | `notebooks/download_thumbnails.ipynb` | Image download |
-| `notebooks/modeling/` | Multi-input experiments |
+| `notebooks/modeling.ipynb` | Multi-input experiments |
 
 Thumbnails and the full CSV are not checked in. Point the notebooks at a local data folder.
 
@@ -73,7 +72,7 @@ Stack: **YouTube Data API** scrape → pandas clean → **TensorFlow/Keras** mul
 
 **Features we actually used.** Hour and day-of-week; `is_weekend` and `time_of_day`; `like_rate` and `subscriber_rate`. From the image, via public vision APIs: `has_face`, `face_count`, `has_text`, detected text. Title-side counts of symbols / special characters were tried; they did not beat the best tabular group on their own.
 
-**Architecture (Model II — the one we kept).** Image branch: `Conv2D(32) → MaxPool → Conv2D(64) → GlobalMaxPooling → Dense(32)`. Tabular branch: `Dense(64) → Dense(32)`. Fusion: concatenate → `Dense(32)`. A deeper stack (third conv 128, batch-norm, dropout) **overfit** this 9.9k-row set; flattening the image with no convs underfit. We compared a linear baseline, MLP-only, CNN-only, the multi-input, and a pre-trained image tower — the fused Model II won on validation.
+**Architecture (Model II — the one we kept).** Image branch: `Conv2D(32) → MaxPool → Conv2D(64) → GlobalMaxPooling → Dense(32)`. Tabular branch: `Dense(64) → Dense(32)`. Fusion: concatenate → `Dense(32)`. A deeper stack (third conv 128, batch-norm, dropout) **overfit** this 9.9k-row set; flattening the image with no convs underfit. We compared a linear baseline, MLP-only, CNN-only, the multi-input, and a pre-trained image tower — the fused Model II won on validation. Working notebook: `notebooks/modeling.ipynb`.
 
 **Target.** Raw view counts produced huge negative R². **`y' = log(y)`** is what made validation usable (0.656 → 0.794 on log, 0.763 on raw views after the transform). That is a modeling choice with a product meaning: we rank *orders of magnitude*, not exact view counts.
 
